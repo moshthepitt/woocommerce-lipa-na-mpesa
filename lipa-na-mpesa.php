@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /*
 Plugin Name: Woocommerce Lipa na MPESA
-Plugin URI: http://jayanoris.com
+Plugin URI: https://github.com/moshthepitt/woocommerce-lipa-na-mpesa
 Description: Allows use of Kenyan payment processor Lipa na MPESA - http://kopokopo.com.
 Version: 0.1
 Author: Kelvin Jayanoris
