@@ -48,7 +48,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	    `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
 	    `order_id` int(11) unsigned NOT NULL,
 	    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	    `mpesa_receipt` varchar(255) NOT NULL,
+	    `mpesa_receipt` varchar(50) NOT NULL,
 	    PRIMARY KEY (`id`),
 	    UNIQUE KEY `order_id` (`order_id`,`mpesa_receipt`)
 	  ) $charset_collate;";
@@ -291,6 +291,15 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 	    	// Save confirmation code as note from customer
 	    	$order->add_order_note($this->field_title . ": " . $_POST['mpesa_code'], $is_customer_note=1);
+
+	    	// save to DB
+	    	global $wpdb;
+	    	$table_name = $wpdb->prefix . "woocommerce_lipa_na_mpesa"; 
+	    	$mpesa_input_code = $_POST['mpesa_code'];
+	    	$sql = "INSERT INTO {$table_name} 
+	    					(`id`, `order_id`, `created_at`, `mpesa_receipt`) 
+	    					VALUES (NULL, '{$order->id}', CURRENT_TIMESTAMP, '{$mpesa_input_code}');";
+	    	$wpdb->query($wpdb->prepare($sql));
 
 				// Return thankyou redirect
 	    	return array(
