@@ -1,2 +1,1 @@
-# woocommerce-lipa-na-mpesa
-WooCommerce Lipa Na MPESA Payment Gateway
+# WooCommerce Lipa Na MPESA Payment Gateway
