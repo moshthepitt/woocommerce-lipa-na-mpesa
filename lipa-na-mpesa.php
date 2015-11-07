@@ -48,6 +48,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	    `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
 	    `order_id` int(11) unsigned NOT NULL,
 	    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	    `mpesa_phone` varchar(50) NOT NULL,
 	    `mpesa_receipt` varchar(50) NOT NULL,
 	    PRIMARY KEY (`id`),
 	    UNIQUE KEY `order_id` (`order_id`,`mpesa_receipt`)
@@ -84,6 +85,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				// Get settings
 				$this->title              = $this->get_option( 'title' );
 				$this->field_title        = $this->get_option( 'field_title' );
+				$this->phone_title        = $this->get_option( 'phone_title' );
 				$this->till_number        = $this->get_option( 'till_number' );
 				$this->description        = $this->get_option( 'description' );
 				$this->instructions       = $this->get_option( 'instructions', $this->description );
@@ -118,7 +120,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 						      ' . __('Enter the Till Number', 'woocommerce' ) . ' <strong>' . $this->till_number . '</strong> </br>
 						      ' . __('Enter exactly the amount due', 'woocommerce' ) . '</br>
 						      ' . __('Follow subsequent prompts to complete the transaction.', 'woocommerce' ) . ' </br>
-						      ' . __('Please input the confirmation code that you received from M-PESA below.', 'woocommerce' ) . '</br>
+						      ' . __('You will receive a confirmation SMS from M-PESA with a Confirmation Code.', 'woocommerce' ) . ' </br>
+						      ' . __('After you receive the confirmation code,pPlease input your phone number and the confirmation code that you received from M-PESA below.', 'woocommerce' ) . '</br>
 						    </p>
 						  </p>
 						</div>      
@@ -163,6 +166,13 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 							'type'        => 'text',
 							'description' => __( 'This controls the MPESA confirmation field title which the user sees during checkout.', 'woocommerce' ),
 							'default'     => __( 'MPESA Confirmation Code', 'woocommerce' ),
+							'desc_tip'    => true,
+							),
+						'phone_title' => array(
+							'title'       => __( 'Phone Number Field Title', 'woocommerce' ),
+							'type'        => 'text',
+							'description' => __( 'This controls the MPESA phone number field title which the user sees during checkout.', 'woocommerce' ),
+							'default'     => __("MPESA Phone Number", 'woothemes'),
 							'desc_tip'    => true,
 							),
 						'enable_for_methods' => array(
@@ -276,6 +286,10 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				}
 
 				echo '
+					<p class="form-row form-row form-row-wide woocommerce-validated" id="mpesa_phone_field" data-o_class="form-row form-row form-row-wide">
+						<label for="mpesa_phone" class="">' . $this->phone_title . ' <abbr class="required" title="required">*</abbr></label>
+						<input type="text" class="input-text " name="mpesa_phone" id="mpesa_phone" placeholder="' . $this->phone_title . '" />
+					</p>
 					<p class="form-row form-row form-row-wide woocommerce-validated" id="mpesa_code_field" data-o_class="form-row form-row form-row-wide">
 						<label for="mpesa_code" class="">' . $this->field_title . ' <abbr class="required" title="required">*</abbr></label>
 						<input type="text" class="input-text " name="mpesa_code" id="mpesa_code" placeholder="' . $this->field_title . '" />
@@ -284,13 +298,24 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 			}
 
 			public function validate_fields() { 
+
 				if ( $_POST['mpesa_code'] ) {
-					return true;
+					$success = true;
 				} else {					
 					$error_message = __("The ", 'woothemes') . $this->field_title . __(" field is required", 'woothemes');
 					wc_add_notice( __('Field error: ', 'woothemes') . $error_message, 'error' );
-					return false; 
+					$success = False;
 				}
+
+				if ( $_POST['mpesa_phone'] ) {
+					$success = true;
+				} else {					
+					$error_message = __("The ", 'woothemes') . $this->phone_title . __(" field is required", 'woothemes');
+					wc_add_notice( __('Field error: ', 'woothemes') . $error_message, 'error' );
+					$success = False;
+				}
+
+				return $success;
 			}
 
 	    /**
@@ -313,15 +338,17 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	    	WC()->cart->empty_cart();
 
 	    	// Save confirmation code as note from customer
+	    	$order->add_order_note($this->phone_title . ": " . $_POST['mpesa_phone'], $is_customer_note=1);
 	    	$order->add_order_note($this->field_title . ": " . $_POST['mpesa_code'], $is_customer_note=1);
 
 	    	// save to DB
 	    	global $wpdb;
 	    	$table_name = $wpdb->prefix . "woocommerce_lipa_na_mpesa"; 
+	    	$mpesa_input_phone = $_POST['mpesa_phone'];
 	    	$mpesa_input_code = $_POST['mpesa_code'];
 	    	$sql = "INSERT INTO {$table_name} 
-	    					(`id`, `order_id`, `created_at`, `mpesa_receipt`) 
-	    					VALUES (NULL, '{$order->id}', CURRENT_TIMESTAMP, '{$mpesa_input_code}');";
+	    					(`id`, `order_id`, `created_at`, `mpesa_receipt`, `mpesa_receipt`) 
+	    					VALUES (NULL, '{$order->id}', CURRENT_TIMESTAMP, '{$mpesa_input_phone}, '{$mpesa_input_code}');";
 	    	$wpdb->query($wpdb->prepare($sql));
 
 				// Return thankyou redirect
@@ -363,4 +390,27 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	}
 
 	add_filter( 'woocommerce_payment_gateways', 'add_lipa_na_mpesa_gateway' );
+
+	// Kenya Counties
+	add_filter( 'woocommerce_states', 'KE_woocommerce_counties' );
+
+	function KE_woocommerce_counties( $states ) {
+
+	  $states['KE'] = array(
+			'NBI' => __('Nairobi', 'woocommerce'),
+			'MSA' => __('Mombasa', 'woocommerce'),
+			'KSM' => __('Kisumu', 'woocommerce'),
+	  );
+
+	  return $states;
+	}
+
+	// Kenya Currency
+	 add_filter('woocommerce_currency_symbol', 'add_kenya_shilling_currency_symbol', 10, 2);
+	 function add_kenya_shilling_currency_symbol( $currency_symbol, $currency ) {
+	   switch( $currency ) {
+	    case 'KES': $currency_symbol = 'KES'; break;
+	  }
+	  return $currency_symbol;
+	}
 }
