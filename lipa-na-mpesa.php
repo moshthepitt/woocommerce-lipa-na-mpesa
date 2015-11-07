@@ -83,7 +83,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
 				// Get settings
 				$this->title              = $this->get_option( 'title' );
-				$this->field_title              = $this->get_option( 'field_title' );
+				$this->field_title        = $this->get_option( 'field_title' );
+				$this->till_number        = $this->get_option( 'till_number' );
 				$this->description        = $this->get_option( 'description' );
 				$this->instructions       = $this->get_option( 'instructions', $this->description );
 				$this->enable_for_methods = $this->get_option( 'enable_for_methods', array() );
@@ -107,6 +108,22 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 						$shipping_methods[ $method->id ] = $method->get_title();
 					}
 
+					$mpesa_instructions = '
+						<div class="mpesa-instructions">
+						  <p>
+						    <h3>' . __('Payment Instructions', 'woocommerce' ) . '</h3>
+						    <p>
+						      ' . __('On your Safaricom phone go the M-PESA menu', 'woocommerce' ) . '</br>
+						      ' . __('Select Lipa Na M-PESA and then select Buy Goods and Services', 'woocommerce' ) . '</br>
+						      ' . __('Enter the Till Number', 'woocommerce' ) . ' <strong>' . $this->till_number . '</strong> </br>
+						      ' . __('Enter exactly the amount due', 'woocommerce' ) . '</br>
+						      ' . __('Follow subsequent prompts to complete the transaction.', 'woocommerce' ) . ' </br>
+						      ' . __('Please input the confirmation code that you received from M-PESA below.', 'woocommerce' ) . '</br>
+						    </p>
+						  </p>
+						</div>      
+					';
+
 					$this->form_fields = array(
 						'enabled' => array(
 							'title'   => __( 'Enable/Disable', 'woocommerce' ),
@@ -121,18 +138,24 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 							'default'     => __( 'Lipa na MPESA', 'woocommerce' ),
 							'desc_tip'    => true,
 							),
+						'till_number' => array(
+							'title'       => __( 'Lipa na MPESA Till Number', 'woocommerce' ),
+							'type'        => 'text',
+							'description' => __( 'The Lipa na MPESA till number where money is sent to.', 'woocommerce' ),
+							'desc_tip'    => true,
+							),
 						'description' => array(
 							'title'       => __( 'Description', 'woocommerce' ),
 							'type'        => 'textarea',
 							'description' => __( 'Payment method description that the customer will see on your checkout.', 'woocommerce' ),
-							'default'     => __( 'Make your payment directly into our bank account. Please use your Order ID as the payment reference. Your order won\'t be shipped until the funds have cleared in our account.', 'woocommerce' ),
+							'default'     => $mpesa_instructions,
 							'desc_tip'    => true,
 							),
 						'instructions' => array(
 							'title'       => __( 'Instructions', 'woocommerce' ),
 							'type'        => 'textarea',
 							'description' => __( 'Instructions that will be added to the thank you page and emails.', 'woocommerce' ),
-							'default'     => '',
+							'default'     => $mpesa_instructions,
 							'desc_tip'    => true,
 							),
 						'field_title' => array(
