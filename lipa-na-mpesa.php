@@ -121,7 +121,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 						      ' . __('Enter exactly the amount due', 'woocommerce' ) . '</br>
 						      ' . __('Follow subsequent prompts to complete the transaction.', 'woocommerce' ) . ' </br>
 						      ' . __('You will receive a confirmation SMS from M-PESA with a Confirmation Code.', 'woocommerce' ) . ' </br>
-						      ' . __('After you receive the confirmation code,pPlease input your phone number and the confirmation code that you received from M-PESA below.', 'woocommerce' ) . '</br>
+						      ' . __('After you receive the confirmation code, please input your phone number and the confirmation code that you received from M-PESA below.', 'woocommerce' ) . '</br>
 						    </p>
 						  </p>
 						</div>      
@@ -397,12 +397,67 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	function KE_woocommerce_counties( $states ) {
 
 	  $states['KE'] = array(
-			'NBI' => __('Nairobi', 'woocommerce'),
-			'MSA' => __('Mombasa', 'woocommerce'),
-			'KSM' => __('Kisumu', 'woocommerce'),
+			30	=>	__("Baringo", "woocommerce"),
+			36	=>	__("Bomet", "woocommerce"),
+			39	=>	__("Bungoma", "woocommerce"),
+			40	=>	__("Busia", "woocommerce"),
+			28	=>	__("Elgeyo-Marakwet", "woocommerce"),
+			14	=>	__("Embu", "woocommerce"),
+			7	=>	__("Garissa", "woocommerce"),
+			43	=>	__("Homa Bay", "woocommerce"),
+			11	=>	__("Isiolo", "woocommerce"),
+			34	=>	__("Kajiado", "woocommerce"),
+			37	=>	__("Kakamega", "woocommerce"),
+			35	=>	__("Kericho", "woocommerce"),
+			22	=>	__("Kiambu", "woocommerce"),
+			3	=>	__("Kilifi", "woocommerce"),
+			20	=>	__("Kirinyaga", "woocommerce"),
+			45	=>	__("Kisii", "woocommerce"),
+			42	=>	__("Kisumu", "woocommerce"),
+			15	=>	__("Kitui", "woocommerce"),
+			2	=>	__("Kwale", "woocommerce"),
+			31	=>	__("Laikipia", "woocommerce"),
+			5	=>	__("Lamu", "woocommerce"),
+			16	=>	__("Machakos", "woocommerce"),
+			17	=>	__("Makueni", "woocommerce"),
+			9	=>	__("Mandera", "woocommerce"),
+			10	=>	__("Marsabit", "woocommerce"),
+			12	=>	__("Meru", "woocommerce"),
+			44	=>	__("Migori", "woocommerce"),
+			1	=>	__("Mombasa", "woocommerce"),
+			21	=>	__("Murang'a", "woocommerce"),
+			47	=>	__("Nairobi County", "woocommerce"),
+			32	=>	__("Nakuru", "woocommerce"),
+			29	=>	__("Nandi", "woocommerce"),
+			33	=>	__("Narok", "woocommerce"),
+			46	=>	__("Nyamira", "woocommerce"),
+			18	=>	__("Nyandarua", "woocommerce"),
+			19	=>	__("Nyeri", "woocommerce"),
+			25	=>	__("Samburu", "woocommerce"),
+			41	=>	__("Siaya", "woocommerce"),
+			6	=>	__("Taita-Taveta", "woocommerce"),
+			4	=>	__("Tana River", "woocommerce"),
+			13	=>	__("Tharaka-Nithi", "woocommerce"),
+			26	=>	__("Trans Nzoia", "woocommerce"),
+			23	=>	__("Turkana", "woocommerce"),
+			27	=>	__("Uasin Gishu", "woocommerce"),
+			38	=>	__("Vihiga", "woocommerce"),
+			8	=>	__("Wajir", "woocommerce"),
+			24	=>	__("West Pokot", "woocommerce"),
+
 	  );
 
 	  return $states;
+	}
+
+	 //Woocommerce doesn't have KES by default so add it if not already added
+	 add_filter( 'woocommerce_currencies', 'add_kenya_shilling_currency' );
+
+	 function add_kenya_shilling_currency( $currencies ) {
+	   if(!isset($currencies['KES'])||!isset($currencies['KSH'])){
+	    $currencies['KES'] = __( 'Kenyan Shilling', 'woocommerce' );	    
+	    return $currencies;
+	  }
 	}
 
 	// Kenya Currency
