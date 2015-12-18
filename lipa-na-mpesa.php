@@ -346,10 +346,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	    	$table_name = $wpdb->prefix . "woocommerce_lipa_na_mpesa"; 
 	    	$mpesa_input_phone = $_POST['mpesa_phone'];
 	    	$mpesa_input_code = $_POST['mpesa_code'];
-	    	$sql = "INSERT INTO {$table_name} 
-	    					(`id`, `order_id`, `created_at`, `mpesa_receipt`, `mpesa_receipt`) 
-	    					VALUES (NULL, '{$order->id}', CURRENT_TIMESTAMP, '{$mpesa_input_phone}, '{$mpesa_input_code}');";
-	    	$wpdb->query($wpdb->prepare($sql));
+
+	    	$wpdb->insert($table_name, array(
+	    	   "order_id" => $order->id,
+	    	   "mpesa_receipt" => $mpesa_input_code,
+	    	   "mpesa_phone" => $mpesa_input_phone
+	    	));
 
 				// Return thankyou redirect
 	    	return array(
