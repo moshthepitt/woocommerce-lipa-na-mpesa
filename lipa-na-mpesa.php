@@ -441,6 +441,10 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 		$inputJSON = file_get_contents('php://input');
 		$inputData = json_decode($inputJSON, TRUE);
 
+		if(!is_array($inputData)) {
+			$inputData = array();
+		}
+
 		$signature = "";
 		if(isset($inputData['signature'])){
 	    $signature = $inputData['signature'];
