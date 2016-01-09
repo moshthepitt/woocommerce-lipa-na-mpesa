@@ -448,12 +448,12 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 		$signature = "";
 		if(isset($inputData['signature'])){
 	    $signature = $inputData['signature'];
+	    unset($inputData['signature']);
 		} 	
 
 		// create a Base64 encoded signature using API_KEY as the secret key
 		// the signature is a Base64 encoded HMAC(Hash Message Authentication Code)
-		// Described well in the KopoKopo API documentation
-		unset($inputData['signature']);
+		// Described well in the KopoKopo API documentation		
 		ksort($inputData);
 		$base_string = "";
 		foreach ($inputData as $key => $value) {
@@ -577,7 +577,8 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 					);
   	  	} else {
 	  	  	$record = end($records);
-	  	  	$this_order = wc_get_order($record->order_id);		  	  	// check that it is paid in full
+	  	  	$this_order = wc_get_order($record->order_id);		  	  	
+	  	  	// check that it is paid in full
 	  	  	if ((int)$amount >= $this_order->get_total()) {
 			    	$this_order->add_order_note(__("FULLY PAID: Payment of $currency $amount from $first_name $middle_name $last_name, phone number $sender_phone and MPESA reference $transaction_reference confirmed by KopoKopo", 'woocommerce'));
 			    	$this_order->payment_complete();
@@ -593,7 +594,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
   				);
   	  	}	  	  		  	  	
   	  } else {
-  	  	// we had already dealt with this
+  	  	// we had already dealt with this transaction
 	    	$response = array(
 			   	"status" => "01", // Accepted
 			   	"description" => "Accepted", 
