@@ -1,5 +1,5 @@
 <?php
-if (! defined('ABSPATH')) {
+if (!defined('ABSPATH')) {
 	exit; // Exit if accessed directly
 }
 
@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USAv
 if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_option('active_plugins')))) {
 	// Hooks for adding/ removing the database table, and the wpcron to check them
 	register_activation_hook(__FILE__, 'woocommerce_lipa_na_mpesa_install');
+	register_activation_hook(__FILE__, 'woocommerce_lipa_na_mpesa_ipn_task');
 	register_uninstall_hook(__FILE__, 'lipa_na_mpesa_on_uninstall');
 
 	define('LIPANAMPESA_PLUGIN_URL', plugin_dir_url(__FILE__));
@@ -88,6 +89,59 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 	  $wpdb->query("DROP TABLE IF EXISTS $table_name");
 	  $wpdb->query("DROP TABLE IF EXISTS $ipn_table_name");
 	} 
+
+	function woocommerce_lipa_na_mpesa_ipn_task() {
+		$timestamp = wp_next_scheduled('woocommerce_lipa_na_mpesa_ipn_reconciler');
+		//If $timestamp == false it hasn't been done previously
+	  if( $timestamp == false ){
+	    //Schedule the event for right now, then to repeat hourly
+	    wp_schedule_event(time(), 'hourly', 'woocommerce_lipa_na_mpesa_ipn_reconciler');
+	  }
+	}
+	//Hook our function in
+	add_action('woocommerce_lipa_na_mpesa_ipn_reconciler', 'woocommerce_lipa_na_mpesa_reconcile_ipn');
+	function woocommerce_lipa_na_mpesa_reconcile_ipn(){
+  	global $wpdb;
+  	$table_name = $wpdb->prefix . "woocommerce_lipa_na_mpesa";
+  	$ipn_table_name = $wpdb->prefix . "woocommerce_lipa_na_mpesa_ipn";
+
+		$records = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM `$table_name`
+				 WHERE created_at >= NOW() - INTERVAL 1 HOUR
+				 ORDER BY created_at DESC
+				", ""
+		 )
+		);
+
+		if(!empty($records)) {
+			foreach ($records as $record) {
+				$this_order = wc_get_order($record->order_id);
+				if ($this_order->get_status() == "pending") {
+					$ipn_records = $wpdb->get_results(
+						$wpdb->prepare(
+							"SELECT * FROM `$ipn_table_name`
+							 WHERE `transaction_reference` = %s
+							",
+						  $record->mpesa_receipt
+					 )
+					);
+					if(!empty($ipn_records)) {
+						$ipn_record = end($ipn_records);
+		  	  	if ((int)$ipn_record->amount >= $order->get_total()) {
+		  	  		$note = __("FULLY PAID: Payment of $ipn_record->currency $ipn_record->amount from $ipn_record->first_name $ipn_record->middle_name $ipn_record->last_name, phone number $ipn_record->sender_phone and MPESA reference $ipn_record->transaction_reference confirmed by KopoKopo", 'woocommerce');
+				    	$order->add_order_note($note);
+				    	$order->payment_complete();
+		  	  	} else {
+		  	  		// underpayment
+		  	  		$note = __("PARTLY PAID: Received $ipn_record->currency $ipn_record->amount from $ipn_record->first_name $ipn_record->middle_name $ipn_record->last_name, phone number $ipn_record->sender_phone and MPESA reference $ipn_record->transaction_reference", 'woocommerce');
+		  	  		$order->add_order_note($note);			    	
+		  	  	}
+					}
+				}
+			}
+		}
+	}
 
 	add_action('plugins_loaded', 'init_lipa_na_mpesa_gateway');
 
@@ -603,21 +657,30 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 					);
   	  	} else {
 	  	  	$record = end($records);
-	  	  	$this_order = wc_get_order($record->order_id);		  	  	
-	  	  	// check that it is paid in full
-	  	  	if ((int)$amount >= $this_order->get_total()) {
-			    	$this_order->add_order_note(__("FULLY PAID: Payment of $currency $amount from $first_name $middle_name $last_name, phone number $sender_phone and MPESA reference $transaction_reference confirmed by KopoKopo", 'woocommerce'));
-			    	$this_order->payment_complete();
-	  	  	} else {
-	  	  		// underpayment
-	  	  		$note = __("PARTLY PAID: Received $currency $amount from $first_name $middle_name $last_name, phone number $sender_phone and MPESA reference $transaction_reference", 'woocommerce');
-	  	  		$this_order->add_order_note($note);			    	
-	  	  	}
-  	    	$response = array(
-  			   	"status" => "01", // Accepted
-  			   	"description" => "Accepted", 
-  			  	"subscriber_message" => "We have received your payment of " . $amount . " for Order No. " . $record->order_id
-  				);
+	  	  	$this_order = wc_get_order($record->order_id);		
+	  	  	if ($this_order->get_status() == "pending") {  	  	
+		  	  	// check that it is paid in full
+		  	  	if ((int)$amount >= $this_order->get_total()) {
+				    	$this_order->add_order_note(__("FULLY PAID: Payment of $currency $amount from $first_name $middle_name $last_name, phone number $sender_phone and MPESA reference $transaction_reference confirmed by KopoKopo", 'woocommerce'));
+				    	$this_order->payment_complete();
+		  	  	} else {
+		  	  		// underpayment
+		  	  		$note = __("PARTLY PAID: Received $currency $amount from $first_name $middle_name $last_name, phone number $sender_phone and MPESA reference $transaction_reference", 'woocommerce');
+		  	  		$this_order->add_order_note($note);			    	
+		  	  	}
+	  	    	$response = array(
+	  			   	"status" => "01", // Accepted
+	  			   	"description" => "Accepted", 
+	  			  	"subscriber_message" => "We have received your payment of " . $amount . " for Order No. " . $record->order_id
+	  				);
+	  			} else {
+	  				// this order payment status is something other than pending
+			    	$response = array(
+					   	"status" => "01", // Accepted
+					   	"description" => "Accepted", 
+					  	"subscriber_message" => "" 
+						);
+	  			}
   	  	}	  	  		  	  	
   	  } else {
   	  	// we had already dealt with this transaction
