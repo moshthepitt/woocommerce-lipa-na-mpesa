@@ -117,7 +117,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 		if(!empty($records)) {
 			foreach ($records as $record) {
 				$this_order = wc_get_order($record->order_id);
-				if ($this_order->get_status() == "pending") {
+				if ($this_order->get_status() == "pending" || $this_order->get_status() == 'on-hold' || $this_order->get_status() == 'failed') {
 					$ipn_records = $wpdb->get_results(
 						$wpdb->prepare(
 							"SELECT * FROM `$ipn_table_name`
@@ -665,7 +665,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
   	  	} else {
 	  	  	$record = end($records);
 	  	  	$this_order = wc_get_order($record->order_id);		
-	  	  	if ($this_order->get_status() == "pending") {  	  	
+	  	  	if ($this_order->get_status() == "pending" || $this_order->get_status() == 'on-hold' || $this_order->get_status() == 'failed') {  	  	
 		  	  	// check that it is paid in full
 		  	  	if ((int)$amount >= $this_order->get_total()) {
 				    	$this_order->add_order_note(__("FULLY PAID: Payment of $currency $amount from $first_name $middle_name $last_name, phone number $sender_phone and MPESA reference $transaction_reference confirmed by KopoKopo", 'woocommerce'));
@@ -715,7 +715,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 	  if ($auto_complete_virtual_orders) {
 		  $order = new WC_Order($order_id);	 
 		  if ('processing' == $order_status &&
-		    ('on-hold' == $order->status || 'pending' == $order->status || 'failed' == $order->status )) {	 
+		    ('on-hold' == $order->status || 'pending' == $order->status || 'failed' == $order->status)) {	 
 		    $virtual_order = null;	 
 		    if ( count( $order->get_items() ) > 0 ) {	 
 		      foreach( $order->get_items() as $item ) {	 
