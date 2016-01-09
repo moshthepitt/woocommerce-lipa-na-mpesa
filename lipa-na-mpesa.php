@@ -161,15 +161,16 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 				$this->init_settings();
 
 				// Get settings
-				$this->title              = $this->get_option('title');
-				$this->field_title        = $this->get_option('field_title');
-				$this->phone_title        = $this->get_option('phone_title');
-				$this->till_number        = $this->get_option('till_number');
-				$this->description        = $this->get_option('description');
-				$this->instructions       = $this->get_option('instructions', $this->description);
-				$this->enable_for_methods = $this->get_option('enable_for_methods', array());
-				$this->enable_for_virtual = $this->get_option('enable_for_virtual', 'yes') === 'yes' ? true : false;
-				$this->kopokopo_api_key   = $this->get_option('kopokopo_api_key');
+				$this->title              					= $this->get_option('title');
+				$this->field_title        					= $this->get_option('field_title');
+				$this->phone_title        					= $this->get_option('phone_title');
+				$this->till_number        					= $this->get_option('till_number');
+				$this->description        					= $this->get_option('description');
+				$this->instructions       					= $this->get_option('instructions', $this->description);
+				$this->enable_for_methods 					= $this->get_option('enable_for_methods', array());
+				$this->enable_for_virtual 					= $this->get_option('enable_for_virtual', 'yes') === 'yes' ? true : false;
+				$this->auto_complete_virtual_orders = $this->get_option('auto_complete_virtual_orders', 'yes') === 'yes' ? true : false;
+				$this->kopokopo_api_key   					= $this->get_option('kopokopo_api_key');
 
 				add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
 				add_action('woocommerce_thankyou_lipa_na_mpesa', array($this, 'thankyou_page'));
@@ -273,6 +274,12 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 							'type'              => 'checkbox',
 							'default'           => 'yes'
 							),
+						'auto_complete_virtual_orders' => array(
+							'title'             => __('Auto-complete for virtual orders', 'woocommerce'),
+							'label'             => __('Automatically mark virtual orders as completed once payment is received', 'woocommerce'),
+							'type'              => 'checkbox',
+							'default'           => 'no'
+							),						
 						'kopokopo_api_key' => array(
 							'title'       => __('KopoKopo API Key', 'woocommerce'),
 							'type'        => 'text',
@@ -698,6 +705,41 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
     exit;
 	}
 	add_action('init', 'woocommerce_lipa_na_mpesa_kopokopo_ipn_listener');
+
+	// Mark virtual orders as completed automatically
+	add_filter('woocommerce_payment_complete_order_status', 'woocommerce_lipa_na_mpesa_virtual_order_completion', 10, 2);
+	 
+	function woocommerce_lipa_na_mpesa_virtual_order_completion($order_status, $order_id) {
+		$lipa_na_mpesa_gateway = new WC_LipaNaMPESA_Gateway();
+	  $auto_complete_virtual_orders = $lipa_na_mpesa_gateway->auto_complete_virtual_orders;
+	  if ($auto_complete_virtual_orders) {
+		  $order = new WC_Order($order_id);	 
+		  if ('processing' == $order_status &&
+		    ('on-hold' == $order->status || 'pending' == $order->status || 'failed' == $order->status )) {	 
+		    $virtual_order = null;	 
+		    if ( count( $order->get_items() ) > 0 ) {	 
+		      foreach( $order->get_items() as $item ) {	 
+		        if ( 'line_item' == $item['type'] ) {	 
+		          $_product = $order->get_product_from_item($item);	 
+		          if (!$_product->is_virtual()) {
+		            // once we've found one non-virtual product we know we're done, break out of the loop
+		            $virtual_order = false;
+		            break;
+		          } else {
+		            $virtual_order = true;
+		          }
+		        }
+		      }
+		    }	 
+		    // virtual order, mark as completed
+		    if ($virtual_order) {
+		      return 'completed';
+		    }
+		  }	
+		} 
+	  // non-virtual order, return original status
+	  return $order_status;
+	}
 
 	// Kenya Counties
 	add_filter('woocommerce_states', 'KE_woocommerce_counties');
