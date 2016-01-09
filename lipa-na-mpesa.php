@@ -375,6 +375,8 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 	    	// save to DB
 	    	global $wpdb;
 	    	$table_name = $wpdb->prefix . "woocommerce_lipa_na_mpesa"; 
+	    	$ipn_table_name = $wpdb->prefix . "woocommerce_lipa_na_mpesa_ipn";
+
 	    	$mpesa_input_phone = trim($_POST['mpesa_phone']);
 	    	$mpesa_input_code = trim($_POST['mpesa_code']);
 
@@ -383,6 +385,30 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 	    	   "mpesa_receipt" => $mpesa_input_code,
 	    	   "mpesa_phone" => $mpesa_input_phone
 	    	));
+
+	    	// check if IPN from KopoKopo is already received
+	    	// query for the MPESA Receipt AKA transaction_reference
+	    	$ipn_records = $wpdb->get_results(
+	    		$wpdb->prepare(
+	    			"SELECT * FROM `$ipn_table_name`
+	    			 WHERE `transaction_reference` = %s
+	    			",
+	    		  $mpesa_input_code
+	    	 )
+	    	);
+
+	    	if(!empty($ipn_records)) {
+	    		$ipn_record = end($ipn_records);
+	  	  	if ((int)$ipn_record->amount >= $order->get_total()) {
+	  	  		$note = __("FULLY PAID: Payment of $ipn_record->currency $ipn_record->amount from $ipn_record->first_name $ipn_record->middle_name $ipn_record->last_name, phone number $ipn_record->sender_phone and MPESA reference $ipn_record->transaction_reference confirmed by KopoKopo", 'woocommerce');
+			    	$order->add_order_note($note);
+			    	$order->payment_complete();
+	  	  	} else {
+	  	  		// underpayment
+	  	  		$note = __("PARTLY PAID: Received $ipn_record->currency $ipn_record->amount from $ipn_record->first_name $ipn_record->middle_name $ipn_record->last_name, phone number $ipn_record->sender_phone and MPESA reference $ipn_record->transaction_reference", 'woocommerce');
+	  	  		$order->add_order_note($note);			    	
+	  	  	}
+	    	}
 
 				// Return thankyou redirect
 	    	return array(
