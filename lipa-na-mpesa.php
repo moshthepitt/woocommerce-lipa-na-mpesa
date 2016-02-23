@@ -430,8 +430,8 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 	    	WC()->cart->empty_cart();
 
 	    	// Save confirmation code as note from customer
-	    	$order->add_order_note($this->phone_title . ": " . $_POST['mpesa_phone'], $is_customer_note=1);
-	    	$order->add_order_note($this->field_title . ": " . $_POST['mpesa_code'], $is_customer_note=1);
+	    	$order->add_order_note($this->phone_title . ": " . $_POST['mpesa_phone']);
+	    	$order->add_order_note($this->field_title . ": " . $_POST['mpesa_code']);
 
 	    	// save to DB
 	    	global $wpdb;
