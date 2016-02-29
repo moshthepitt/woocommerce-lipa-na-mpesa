@@ -515,7 +515,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 	function woocommerce_lipa_na_mpesa_kopokopo_ipn_listener() {
     // check for your custom query var
     // If you are paranoid you can also check the value of the var
-    if (! isset($_GET['KOPKOPO_IPN_LISTENER'])) {
+    if (! isset($_GET['KOPOKOPO_IPN_LISTENER'])) {
       // if query var is not present then not API call	    	
       return;
     }    
